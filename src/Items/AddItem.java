@@ -17,16 +17,17 @@ public class AddItem extends ItemTemplate {
 
     @Override
     protected String validateInputs() {
-
         String itemCode;
         String itemName = null;
 
         do {
+            // Prompt for item code and ensure it's not empty
             System.out.print("Enter Item Code: ");
             itemCode = scanner.nextLine().toUpperCase();
             if (itemCode.isEmpty()) {
                 System.out.println("Item code cannot be empty.");
             } else {
+                // Check if item code already exists in the database
                 itemName = fetchItemNameByCode(itemCode);
                 if (itemName != null) {
                     System.out.println("Item Code exists. Auto-filling item name: " + itemName);
@@ -35,6 +36,7 @@ public class AddItem extends ItemTemplate {
             }
         } while (itemCode.isEmpty());
 
+        // If item code doesn't exist, prompt for item name
         if (itemName == null) {
             do {
                 System.out.print("Enter Item Name: ");
@@ -45,9 +47,10 @@ public class AddItem extends ItemTemplate {
             } while (itemName.isEmpty());
         }
 
-        return itemCode;  // Return the updated item code
+        return itemCode;
     }
 
+    // Fetch item name from the database using item code
     private String fetchItemNameByCode(String itemCode) {
         String query = "SELECT item_name FROM stock WHERE item_code = ?";
         try (Connection connection = DatabaseConnection.getInstance().getConnection();
@@ -65,12 +68,15 @@ public class AddItem extends ItemTemplate {
 
     @Override
     protected String fetchItemName(String itemCode) {
-        return fetchItemNameByCode(itemCode); // Fetch item name by code
+        return fetchItemNameByCode(itemCode);
     }
 
     @Override
-    protected LocalDate addValidatedPurchaseDate(String itemCode, String itemName, int quantity, double price) {
-        // Update quantity
+    protected QuantityPriceResult getQuantityAndPriceInput() {
+        int quantity = 0;
+        double price = 0.0;
+
+        // Get quantity from user input and ensure it's a positive integer
         while (true) {
             System.out.print("Enter Quantity: ");
             try {
@@ -85,7 +91,7 @@ public class AddItem extends ItemTemplate {
             }
         }
 
-        // Update price
+        // Get price from user input and ensure it's a positive number
         while (true) {
             System.out.print("Enter Price: ");
             try {
@@ -100,7 +106,12 @@ public class AddItem extends ItemTemplate {
             }
         }
 
-        // Ask for purchase date
+        return new QuantityPriceResult(quantity, price);
+    }
+
+    @Override
+    protected LocalDate addValidatedPurchaseDate(String itemCode, String itemName, int quantity, double price) {
+        // Ask for purchase date, defaulting to today's date if left blank
         LocalDate purchaseDate;
         while (true) {
             System.out.print("Enter Purchase Date (YYYY-MM-DD or leave blank for today's date): ");
@@ -116,12 +127,12 @@ public class AddItem extends ItemTemplate {
                 System.out.println("Invalid date format. Please try again.");
             }
         }
-        return purchaseDate;  // Return purchase date and updated quantity and price
+        return purchaseDate;
     }
 
     @Override
     protected LocalDate addExpirationDate(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate) {
-        // Expiration date logic
+        // Expiration date logic with validation to ensure it's after the purchase date
         LocalDate expirationDate = null;
         while (true) {
             System.out.print("Enter Expiration Date (YYYY-MM-DD) or 'none' if not applicable: ");
@@ -140,12 +151,12 @@ public class AddItem extends ItemTemplate {
                 System.out.println("Invalid date format. Please try again.");
             }
         }
-        return expirationDate;  // Return expiration date
+        return expirationDate;
     }
 
     @Override
     protected int addRestockLevel(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate, LocalDate expirationDate) {
-        // Restock level logic
+        // Ask for restock level and ensure it's a positive integer
         int restockLevel;
         while (true) {
             System.out.print("Enter Restock Level (positive integer): ");
@@ -160,12 +171,12 @@ public class AddItem extends ItemTemplate {
                 System.out.println("Invalid input. Please enter a positive integer.");
             }
         }
-        return restockLevel;  // Return restock level
+        return restockLevel;
     }
 
     @Override
     protected void ValidateInforAndConfirm(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate, LocalDate expirationDate, int restockLevel) {
-        // Display item details and confirm
+        // Display item details for confirmation
         System.out.printf(""" 
                 Item Details:
                 - Code: %s
@@ -179,6 +190,7 @@ public class AddItem extends ItemTemplate {
                 (expirationDate != null ? expirationDate : "N/A"), restockLevel);
 
         while (true) {
+            // Prompt user to confirm the item addition
             System.out.print("Confirm addition to stock? (Y/N): ");
             String input = scanner.nextLine().toUpperCase();
             if (input.equals("Y")) {
@@ -195,7 +207,7 @@ public class AddItem extends ItemTemplate {
 
     @Override
     protected void saveItemToDatabase(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate, LocalDate expirationDate, int restockLevel) {
-        // Save item to database
+        // Save the item to the database
         String query = "INSERT INTO stock (item_code, item_name, quantity, price, purchaseDate, expirationDate, restockLevel) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection connection = DatabaseConnection.getInstance().getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(query)) {
@@ -221,6 +233,7 @@ public class AddItem extends ItemTemplate {
     @Override
     protected void Continuation() {
         while (true) {
+            // Ask if the user wants to add another item
             System.out.print("Add another item? (Y/N): ");
             String input = scanner.nextLine().toUpperCase();
             if (input.equals("Y")) {

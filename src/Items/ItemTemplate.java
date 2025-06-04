@@ -7,33 +7,43 @@ public abstract class ItemTemplate {
     // Template method defining the steps
     public final void addItemToStock() {
 
-        // Initialize variables
-        String itemCode = "";
-        String itemName = "";
-        int quantity = 0;
-        double price = 0;
+        // Step 1: Validate inputs and get itemCode
+        String itemCode = validateInputs();
+        String itemName = fetchItemName(itemCode);
 
-        // Step 1: Validate inputs and update itemCode, itemName, quantity, price
-        itemCode = validateInputs();
-        itemName = fetchItemName(itemCode);
+        // Step 2: Get quantity and price from user input
+        QuantityPriceResult qpResult = getQuantityAndPriceInput();
+        int quantity = qpResult.quantity;
+        double price = qpResult.price;
 
-        // Step 2: Add validated purchase date and update quantity and price
+        // Step 3: Add validated purchase date
         LocalDate purchaseDate = addValidatedPurchaseDate(itemCode, itemName, quantity, price);
 
-        // Step 3: Add validated Expiry date
+        // Step 4: Add validated Expiry date
         LocalDate expirationDate = addExpirationDate(itemCode, itemName, quantity, price, purchaseDate);
 
-        // Step 4: Add the restocking level and update the quantity
+        // Step 5: Add the restocking level
         int restockLevel = addRestockLevel(itemCode, itemName, quantity, price, purchaseDate, expirationDate);
 
-        // Step 5: Apply discounts and confirm
-        ValidateInforAndConfirm(itemCode, itemName, quantity, price, purchaseDate , expirationDate, restockLevel);
+        // Step 6: Validate information and confirm
+        ValidateInforAndConfirm(itemCode, itemName, quantity, price, purchaseDate, expirationDate, restockLevel);
 
-        // Step 6: Save the item to the database
+        // Step 7: Save the item to the database
         saveItemToDatabase(itemCode, itemName, quantity, price, purchaseDate, expirationDate, restockLevel);
 
-        // Step 7: Continuation method
+        // Step 8: Continuation method
         Continuation();
+    }
+
+    // Helper class to return both quantity and price
+    protected static class QuantityPriceResult {
+        public final int quantity;
+        public final double price;
+
+        public QuantityPriceResult(int quantity, double price) {
+            this.quantity = quantity;
+            this.price = price;
+        }
     }
 
     // Abstract methods to be implemented by subclasses
@@ -41,13 +51,15 @@ public abstract class ItemTemplate {
 
     protected abstract String fetchItemName(String itemCode); // Fetch item name based on item code
 
+    protected abstract QuantityPriceResult getQuantityAndPriceInput(); // Get quantity and price from user
+
     protected abstract LocalDate addValidatedPurchaseDate(String itemCode, String itemName, int quantity, double price); // Purchase Date input
 
     protected abstract LocalDate addExpirationDate(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate); // Expiration Date input
 
     protected abstract int addRestockLevel(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate, LocalDate expirationDate); // Restock Level input
 
-    protected abstract void ValidateInforAndConfirm(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate, LocalDate expirationDate , int restockLevel);
+    protected abstract void ValidateInforAndConfirm(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate, LocalDate expirationDate, int restockLevel);
 
     protected abstract void saveItemToDatabase(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate, LocalDate expirationDate, int restockLevel);
 
