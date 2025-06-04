@@ -16,11 +16,9 @@ public class DatabaseConnection {
     private DatabaseConnection() {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            this.connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
+            connect();
         } catch (ClassNotFoundException e) {
             throw new RuntimeException("Database driver not found.", e);
-        } catch (SQLException e) {
-            throw new RuntimeException("Error connecting to the database.", e);
         }
     }
 
@@ -35,11 +33,31 @@ public class DatabaseConnection {
         return instance;
     }
 
+    private void connect() {
+        try {
+            this.connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error connecting to the database.", e);
+        }
+    }
+
     public Connection getConnection() {
-        if (connection == null) {
-            throw new RuntimeException("Database connection is null.");
+        try {
+            if (connection == null || connection.isClosed()) {
+                connect();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error validating the database connection.", e);
         }
         return connection;
+    }
+
+    public boolean isConnected() {
+        try {
+            return connection != null && !connection.isClosed();
+        } catch (SQLException e) {
+            return false;
+        }
     }
 
     public void disconnect() {

@@ -38,60 +38,8 @@ public class ManagerDashboard implements DashboardAccess {
                 System.out.println("Other Items = F0000");
                 System.out.println("...................................................................................");
 
-                String itemCode;
-                do {
-                    System.out.print("Enter Item Code: ");
-                    itemCode = scanner.nextLine();
-                    if (itemCode.isEmpty()) {
-                        System.out.println("Item code cannot be empty. Please enter a valid Item Code.");
-                    }
-                } while (itemCode.isEmpty());
-
-                // Prompt and validate item name
-                String itemName;
-                do {
-                    System.out.print("Enter Item Name: ");
-                    itemName = scanner.nextLine();
-                    if (itemName.isEmpty()) {
-                        System.out.println("Item name cannot be empty. Please enter a valid Item Name.");
-                    }
-                } while (itemName.isEmpty());
-
-                // Prompt and validate quantity
-                int quantity;
-                while (true) {
-                    System.out.print("Enter Item quantity: ");
-                    String quantityInput = scanner.nextLine();
-                    try {
-                        quantity = Integer.parseInt(quantityInput);
-                        if (quantity <= 0) {
-                            System.out.println("Quantity must be greater than zero.");
-                        } else {
-                            break;
-                        }
-                    } catch (NumberFormatException e) {
-                        System.out.println("Invalid input. Please enter a numeric value for quantity.");
-                    }
-                }
-
-                // Prompt and validate price
-                double price;
-                while (true) {
-                    System.out.print("Enter Item unit price: ");
-                    String priceInput = scanner.nextLine();
-                    try {
-                        price = Double.parseDouble(priceInput);
-                        if (price <= 0) {
-                            System.out.println("Price must be greater than zero.");
-                        } else {
-                            break;
-                        }
-                    } catch (NumberFormatException e) {
-                        System.out.println("Invalid input. Please enter a numeric value for price.");
-                    }
-                }
                 ItemTemplate itemTemplate = new AddItem();
-                itemTemplate.addItemToStock(itemCode, itemName, quantity, price);
+                itemTemplate.addItemToStock();
                 break;
             case 2:
                 System.out.println("Viewing stock functionality is not implemented yet.");

@@ -6,181 +6,199 @@ import Dashboard.ManagerDashboard;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.Scanner;
 
-public class AddItem extends ItemTemplate{
+public class AddItem extends ItemTemplate {
+
+    private Scanner scanner = ScannerInstance.getScanner();
 
     @Override
-    protected void validateItemDetails(String itemCode, String itemName, int quantity, double price) {
-        System.out.println("...................................................................................");
-        System.out.println("Item Code: " + itemCode);
-        System.out.println("Item Name: " + itemName);
-        System.out.println("Quantity: " + quantity);
-        System.out.println("Price: LKR" + price);
-        System.out.println("...................................................................................");
+    protected String validateInputs() {
+
+        String itemCode;
+        String itemName = null;
+
+        do {
+            System.out.print("Enter Item Code: ");
+            itemCode = scanner.nextLine().toUpperCase();
+            if (itemCode.isEmpty()) {
+                System.out.println("Item code cannot be empty.");
+            } else {
+                itemName = fetchItemNameByCode(itemCode);
+                if (itemName != null) {
+                    System.out.println("Item Code exists. Auto-filling item name: " + itemName);
+                    break;
+                }
+            }
+        } while (itemCode.isEmpty());
+
+        if (itemName == null) {
+            do {
+                System.out.print("Enter Item Name: ");
+                itemName = scanner.nextLine();
+                if (itemName.isEmpty()) {
+                    System.out.println("Item name cannot be empty.");
+                }
+            } while (itemName.isEmpty());
+        }
+
+        return itemCode;  // Return the updated item code
+    }
+
+    private String fetchItemNameByCode(String itemCode) {
+        String query = "SELECT item_name FROM stock WHERE item_code = ?";
+        try (Connection connection = DatabaseConnection.getInstance().getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+            preparedStatement.setString(1, itemCode);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            if (resultSet.next()) {
+                return resultSet.getString("item_name");
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching item name by code: " + e.getMessage());
+        }
+        return null;
+    }
+
+    @Override
+    protected String fetchItemName(String itemCode) {
+        return fetchItemNameByCode(itemCode); // Fetch item name by code
     }
 
     @Override
     protected LocalDate addValidatedPurchaseDate(String itemCode, String itemName, int quantity, double price) {
-        Scanner scanner = ScannerInstance.getScanner();
-        LocalDate purchaseDate = null;
-
-        System.out.println("1) Today's Date");
-        System.out.println("2) Custom Date");
-        System.out.print("What's the purchasing date of the item?: ");
-        int choice = scanner.nextInt();
-        scanner.nextLine(); // Clear the buffer
-
-        if (choice == 1) {
-            // Get the current date
-            purchaseDate = LocalDate.now();
-            System.out.println("Purchase Date: " + purchaseDate);
-        } else if (choice == 2) {
-            while (true) {
-                System.out.print("Enter the custom date (YYYY-MM-DD): ");
-                String customDateInput = scanner.nextLine();
-                if (customDateInput.isEmpty()) {
-                    System.out.println("Date cannot be empty. Please provide a valid date.");
-                    continue;
+        // Update quantity
+        while (true) {
+            System.out.print("Enter Quantity: ");
+            try {
+                quantity = Integer.parseInt(scanner.nextLine());
+                if (quantity > 0) {
+                    break;
+                } else {
+                    System.out.println("Quantity must be a positive integer.");
                 }
-
-                try {
-                    purchaseDate = LocalDate.parse(customDateInput);
-                    System.out.println("Purchase Date: " + purchaseDate);
-                    break; // Exit the loop if date is valid
-                } catch (Exception e) {
-                    System.out.println("Invalid date format. Please use YYYY-MM-DD.");
-                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input. Please enter a valid quantity.");
             }
-        } else {
-            System.out.println("Invalid choice. Please try again. Choose between 1 and 2.");
         }
-        return purchaseDate;
+
+        // Update price
+        while (true) {
+            System.out.print("Enter Price: ");
+            try {
+                price = Double.parseDouble(scanner.nextLine());
+                if (price > 0) {
+                    break;
+                } else {
+                    System.out.println("Price must be a positive number.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input. Please enter a valid price.");
+            }
+        }
+
+        // Ask for purchase date
+        LocalDate purchaseDate;
+        while (true) {
+            System.out.print("Enter Purchase Date (YYYY-MM-DD or leave blank for today's date): ");
+            String input = scanner.nextLine();
+            if (input.isEmpty()) {
+                purchaseDate = LocalDate.now();
+                break;
+            }
+            try {
+                purchaseDate = LocalDate.parse(input);
+                break;
+            } catch (Exception e) {
+                System.out.println("Invalid date format. Please try again.");
+            }
+        }
+        return purchaseDate;  // Return purchase date and updated quantity and price
     }
 
     @Override
     protected LocalDate addExpirationDate(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate) {
-        Scanner scanner = ScannerInstance.getScanner();
+        // Expiration date logic
         LocalDate expirationDate = null;
-
-        int choice = 0;
         while (true) {
-            System.out.println("1) No Expiration Date");
-            System.out.println("2) Custom Expiration Date");
-            System.out.print("Does the item have an expiration date? (1/2): ");
-
+            System.out.print("Enter Expiration Date (YYYY-MM-DD) or 'none' if not applicable: ");
+            String input = scanner.nextLine();
+            if (input.equalsIgnoreCase("none")) {
+                break;
+            }
             try {
-                choice = scanner.nextInt();
-                scanner.nextLine(); // Clear the buffer
-                if (choice == 1 || choice == 2) {
-                    break; // Valid choice, exit the loop
+                expirationDate = LocalDate.parse(input);
+                if (!expirationDate.isBefore(purchaseDate)) {
+                    break;
                 } else {
-                    System.out.println("Invalid choice. Please enter 1 or 2.");
+                    System.out.println("Expiration date cannot be before purchase date.");
                 }
             } catch (Exception e) {
-                System.out.println("Invalid input. Please enter a number (1 or 2).");
-                scanner.nextLine(); // Clear invalid input
+                System.out.println("Invalid date format. Please try again.");
             }
         }
-
-        if (choice == 1) {
-            System.out.println("No expiration date set for this item.");
-            // No expiration date
-        } else if (choice == 2) {
-            while (true) {
-                System.out.print("Enter the custom expiration date (YYYY-MM-DD): ");
-                String customDateInput = scanner.nextLine();
-                if (customDateInput.isEmpty()) {
-                    System.out.println("Expiration date cannot be empty. Please provide a valid date.");
-                    continue;
-                }
-
-                try {
-                    expirationDate = LocalDate.parse(customDateInput);
-
-                    // Check if expiration date is before the purchase date
-                    if (expirationDate.isBefore(purchaseDate)) {
-                        System.out.println("Expiration date cannot be before the purchase date (" + purchaseDate + "). Please enter a valid date.");
-                        continue; // Prompt the user again
-                    }
-
-                    System.out.println("Expiration Date: " + expirationDate);
-                    break; // Exit the loop if date is valid
-                } catch (Exception e) {
-                    System.out.println("Invalid date format. Please use YYYY-MM-DD.");
-                }
-            }
-        }
-
-        return expirationDate;
+        return expirationDate;  // Return expiration date
     }
 
     @Override
     protected int addRestockLevel(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate, LocalDate expirationDate) {
-        Scanner scanner = ScannerInstance.getScanner();
+        // Restock level logic
         int restockLevel;
-
         while (true) {
-            System.out.print("Enter the restock level for the item (must be a positive integer): ");
+            System.out.print("Enter Restock Level (positive integer): ");
             try {
-                restockLevel = scanner.nextInt();
-                scanner.nextLine(); // Clear the buffer
-
+                restockLevel = Integer.parseInt(scanner.nextLine());
                 if (restockLevel > 0) {
-                    System.out.println("Restock Level for " + itemName + " (Item Code: " + itemCode + ") is set to: " + restockLevel);
-                    break; // Exit loop if input is valid
+                    break;
                 } else {
-                    System.out.println("Restock level must be a positive integer. Please try again.");
+                    System.out.println("Restock level must be a positive integer.");
                 }
             } catch (Exception e) {
                 System.out.println("Invalid input. Please enter a positive integer.");
-                scanner.nextLine(); // Clear invalid input
             }
         }
-        return restockLevel;
+        return restockLevel;  // Return restock level
     }
 
     @Override
     protected void ValidateInforAndConfirm(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate, LocalDate expirationDate, int restockLevel) {
-        System.out.println("...................................................................................");
-        System.out.println("Item Code: " + itemCode);
-        System.out.println("Item Name: " + itemName);
-        System.out.println("Quantity: " + quantity);
-        System.out.println("Price: LKR" + price);
-        System.out.println("Purchase Date: " + (purchaseDate != null ? purchaseDate : "Not Provided"));
-        System.out.println("Expiration Date: " + (expirationDate != null ? expirationDate : "No expiration date"));
-        System.out.println("Restock Level: " + restockLevel);
-        System.out.println("...................................................................................");
-
-        Scanner scanner = ScannerInstance.getScanner();
-        String confirmation;
+        // Display item details and confirm
+        System.out.printf(""" 
+                Item Details:
+                - Code: %s
+                - Name: %s
+                - Quantity: %d
+                - Price: %.2f
+                - Purchase Date: %s
+                - Expiration Date: %s
+                - Restock Level: %d
+                """, itemCode, itemName, quantity, price, purchaseDate,
+                (expirationDate != null ? expirationDate : "N/A"), restockLevel);
 
         while (true) {
-            System.out.print("Do you want to add this Item to the stock? (Y=Yes/N=No): ");
-            confirmation = scanner.nextLine().trim().toUpperCase();
-
-            if (confirmation.equals("Y")) {
-                System.out.println("Item " + itemName + " (Code: " + itemCode + ") has been successfully added to the stock.");
+            System.out.print("Confirm addition to stock? (Y/N): ");
+            String input = scanner.nextLine().toUpperCase();
+            if (input.equals("Y")) {
                 break;
-            } else if (confirmation.equals("N")) {
-                System.out.println("Item addition cancelled.");
-                ManagerDashboard realDashboard = new ManagerDashboard();
-                realDashboard.viewDashboard();
+            } else if (input.equals("N")) {
+                System.out.println("Item addition canceled.");
+                new ManagerDashboard().viewDashboard();
+                return;
             } else {
-                System.out.println("Invalid input. Please enter 'Y' for Yes or 'N' for No.");
+                System.out.println("Invalid input. Please enter 'Y' or 'N'.");
             }
         }
     }
 
     @Override
     protected void saveItemToDatabase(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate, LocalDate expirationDate, int restockLevel) {
-        String insertQuery = "INSERT INTO stock (item_code, item_name, quantity, price, purchaseDate, expirationDate, restockLevel) VALUES (?, ?, ?, ?, ?, ?, ?)";
-
+        // Save item to database
+        String query = "INSERT INTO stock (item_code, item_name, quantity, price, purchaseDate, expirationDate, restockLevel) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection connection = DatabaseConnection.getInstance().getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(insertQuery)) {
-
+             PreparedStatement preparedStatement = connection.prepareStatement(query)) {
             preparedStatement.setString(1, itemCode);
             preparedStatement.setString(2, itemName);
             preparedStatement.setInt(3, quantity);
@@ -191,13 +209,30 @@ public class AddItem extends ItemTemplate{
 
             int rowsAffected = preparedStatement.executeUpdate();
             if (rowsAffected > 0) {
-                System.out.println("Item successfully added to the database.");
+                System.out.println("Item successfully added to stock.");
             } else {
-                System.out.println("Failed to add item to the database.");
+                System.out.println("Failed to add item to stock.");
             }
         } catch (SQLException e) {
-            System.err.println("Error while adding item to the database: " + e.getMessage());
+            System.err.println("Error saving item to database: " + e.getMessage());
         }
     }
 
+    @Override
+    protected void Continuation() {
+        while (true) {
+            System.out.print("Add another item? (Y/N): ");
+            String input = scanner.nextLine().toUpperCase();
+            if (input.equals("Y")) {
+                addItemToStock();
+                break;
+            } else if (input.equals("N")) {
+                System.out.println("Returning to Manager Dashboard.");
+                new ManagerDashboard().viewDashboard();
+                break;
+            } else {
+                System.out.println("Invalid input. Please enter 'Y' or 'N'.");
+            }
+        }
+    }
 }
