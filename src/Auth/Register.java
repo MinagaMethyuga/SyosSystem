@@ -7,7 +7,7 @@ import Users.UserFactory;
 import java.util.Scanner;
 
 public class Register {
-    public void getUserDetails(){
+    public void getUserDetails() {
         // Import scanner instance
         Scanner scanner = ScannerInstance.getScanner();
 
@@ -24,6 +24,7 @@ public class Register {
             }
             System.out.println("Username cannot be empty. Please try again.");
         }
+
         while (true) {
             // Password input
             System.out.print("Enter your password: ");
@@ -32,6 +33,12 @@ public class Register {
             // Check if password is empty
             if (password.isEmpty()) {
                 System.out.println("Password cannot be empty. Please try again.");
+                continue;
+            }
+
+            // Validate password length
+            if (password.length() < 8) {
+                System.out.println("Password must be at least 8 characters long. Please try again.");
                 continue;
             }
 
@@ -48,7 +55,7 @@ public class Register {
             // Validate password and confirm password match
             if (!password.equals(confirmPassword)) {
                 System.out.println("Passwords do not match. Please try again.");
-            }else {
+            } else {
                 Register register = new Register();
                 register.registerUserRole(username, password);
                 break;
