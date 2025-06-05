@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Scanner;
 
 public class RestockItems {
-    private Scanner scanner = ScannerInstance.getScanner();
+    private final Scanner scanner = ScannerInstance.getScanner();
 
     // Inner class to represent stock batches
     private static class StockBatch {
@@ -181,11 +181,11 @@ public class RestockItems {
         List<BatchSelection> batchSelections = selectBatchesForShelving(itemBatches, quantityToMove);
 
         // Display selection summary
-        displayBatchSelectionSummary(batchSelections, itemBatches.get(0).itemName);
+        displayBatchSelectionSummary(batchSelections, itemBatches.getFirst().itemName);
 
         // Confirm the move
         if (confirmMove()) {
-            performBatchedMoveToShelf(batchSelections, itemBatches.get(0).itemName);
+            performBatchedMoveToShelf(batchSelections, itemBatches.getFirst().itemName);
         } else {
             System.out.println("Move operation cancelled.");
         }
@@ -300,7 +300,7 @@ public class RestockItems {
     }
 
     private void displayBatchDetails(List<StockBatch> batches) {
-        System.out.println("Available Batches for " + batches.get(0).itemName + ":");
+        System.out.println("Available Batches for " + batches.getFirst().itemName + ":");
         System.out.printf("%-8s %-12s %-12s %-8s %-15s\n",
                 "Batch", "Purchase", "Expiry", "Qty", "FIFO Priority");
         System.out.println("...................................................................................");
@@ -409,7 +409,7 @@ public class RestockItems {
 
             // Update or remove the batch from working list
             selectedBatch.quantity -= quantityToTake;
-            if (selectedBatch.quantity <= 0) {
+            if (selectedBatch.quantity == 0) {
                 workingBatches.remove(selectedBatch);
             }
         }
@@ -426,7 +426,7 @@ public class RestockItems {
         }
 
         // Start with the oldest batch (FIFO)
-        StockBatch oldestBatch = availableBatches.get(0);
+        StockBatch oldestBatch = availableBatches.getFirst();
 
         // If oldest batch has no expiry date, use it
         if (oldestBatch.expirationDate == null) {
