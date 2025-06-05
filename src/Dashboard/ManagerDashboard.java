@@ -13,6 +13,13 @@ public class ManagerDashboard implements DashboardAccess {
         System.out.println("Welcome to the Manager Dashboard");
         System.out.println("Here you can manage the system, view reports, and perform administrative tasks.");
 
+        // Check for low stock alerts
+        if (RestockManager.hasLowStockItems()) {
+            System.out.println("......................................................................................");
+            System.out.println("⚠️  ATTENTION: You have items that need restocking!");
+            System.out.println("   Check option 4 (Restock Items) for details.");
+        }
+
         //get scanner instance
         Scanner scanner = ScannerInstance.getScanner();
         System.out.println("......................................................................................");
@@ -55,7 +62,8 @@ public class ManagerDashboard implements DashboardAccess {
                 viewDashboard();
                 break;
             case 4:
-                System.out.println("Restocking functionality is not implemented yet.");
+                RestockItems restockItems = new RestockItems();
+                restockItems.restockItemsMenu();
                 break;
             case 5:
                 System.out.println("Managing reports functionality is not implemented yet.");
