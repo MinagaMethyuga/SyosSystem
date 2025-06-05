@@ -13,13 +13,6 @@ public class ManagerDashboard implements DashboardAccess {
         System.out.println("Welcome to the Manager Dashboard");
         System.out.println("Here you can manage the system, view reports, and perform administrative tasks.");
 
-        // Check for low stock alerts
-        if (RestockManager.hasLowStockItems()) {
-            System.out.println("......................................................................................");
-            System.out.println("⚠️  ATTENTION: You have items that need restocking!");
-            System.out.println("   Check option 4 (Restock Items) for details.");
-        }
-
         //get scanner instance
         Scanner scanner = ScannerInstance.getScanner();
         System.out.println("......................................................................................");
@@ -55,7 +48,7 @@ public class ManagerDashboard implements DashboardAccess {
                 viewStock.viewStockWithOptions();
                 break;
             case 3:
-                // Fixed: Get shelf stocks and display them properly
+                // Get shelf stocks and display them properly
                 List<String[]> shelfStocks = ShelfStockDAO.getShelfStocks();
                 ViewShelfStock.ViewShelfStock(shelfStocks);
                 // Return to dashboard after viewing
