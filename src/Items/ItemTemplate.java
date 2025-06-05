@@ -11,6 +11,12 @@ public abstract class ItemTemplate {
         String itemCode = validateInputs();
         String itemName = fetchItemName(itemCode);
 
+        if (itemName == null || itemName.trim().isEmpty()) {
+            // Prompt user to enter a new item name if not found in DB
+            java.util.Scanner scanner = new java.util.Scanner(System.in);
+            itemName = scanner.nextLine();
+        }
+
         // Step 2: Get quantity and price from user input
         QuantityPriceResult qpResult = getQuantityAndPriceInput();
         int quantity = qpResult.quantity;
