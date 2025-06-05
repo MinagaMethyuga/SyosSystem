@@ -3,7 +3,6 @@ package Dashboard;
 import Common.ScannerInstance;
 import Items.*;
 
-import java.util.List;
 import java.util.Scanner;
 
 public class ManagerDashboard implements DashboardAccess {
@@ -18,10 +17,9 @@ public class ManagerDashboard implements DashboardAccess {
         System.out.println("......................................................................................");
         System.out.println("1. Add Item");
         System.out.println("2. View Stock");
-        System.out.println("3. View Shelf Status");
-        System.out.println("4. Restock Items");
-        System.out.println("5. Manage Reports");
-        System.out.println("6. Exit");
+        System.out.println("3. Restock Items");
+        System.out.println("4. Manage Reports");
+        System.out.println("5. Exit");
 
         System.out.print("Please select an option: ");
         int choice = scanner.nextInt();
@@ -48,20 +46,13 @@ public class ManagerDashboard implements DashboardAccess {
                 viewStock.viewStockWithOptions();
                 break;
             case 3:
-                // Get shelf stocks and display them properly
-                List<String[]> shelfStocks = ShelfStockDAO.getShelfStocks();
-                ViewShelfStock.ViewShelfStock(shelfStocks);
-                // Return to dashboard after viewing
-                viewDashboard();
-                break;
-            case 4:
                 RestockItems restockItems = new RestockItems();
                 restockItems.restockItemsMenu();
                 break;
-            case 5:
+            case 4:
                 System.out.println("Managing reports functionality is not implemented yet.");
                 break;
-            case 6:
+            case 5:
                 System.out.println("Exiting the Manager Dashboard.");
                 return false;
             default:

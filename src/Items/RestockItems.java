@@ -43,71 +43,37 @@ public class RestockItems {
             System.out.println("...................................................................................");
             System.out.println("Restock Management System");
             System.out.println("...................................................................................");
-            System.out.println("1. View Available Stock Items");
-            System.out.println("2. Move Items to Shelf");
-            System.out.println("3. View Current Shelf Status");
-            System.out.println("4. View Low Stock Alerts");
-            System.out.println("5. Back to Dashboard");
+            System.out.println("1. Move Items to Shelf");
+            System.out.println("2. View Current Shelf Status");
+            System.out.println("3. View Low Stock Alerts");
+            System.out.println("4. Back to Dashboard");
             System.out.print("Please select an option: ");
 
             int choice;
             try {
                 choice = Integer.parseInt(scanner.nextLine());
             } catch (NumberFormatException e) {
-                System.out.println("Invalid input. Please enter a number between 1-5.");
+                System.out.println("Invalid input. Please enter a number between 1-4.");
                 continue;
             }
 
             switch (choice) {
                 case 1:
-                    displayAvailableStock();
-                    break;
-                case 2:
                     moveItemsToShelfWithFIFO();
                     break;
-                case 3:
+                case 2:
                     displayCurrentShelfStatus();
                     break;
-                case 4:
+                case 3:
                     displayLowStockAlerts();
                     break;
-                case 5:
+                case 4:
                     new ManagerDashboard().viewDashboard();
                     return;
                 default:
-                    System.out.println("Invalid choice. Please select a number between 1-5.");
+                    System.out.println("Invalid choice. Please select a number between 1-4.");
             }
         }
-    }
-
-    private void displayAvailableStock() {
-        System.out.println("...................................................................................");
-        System.out.println("Available Stock Items");
-        System.out.println("...................................................................................");
-
-        List<StockBatch> stockBatches = getAllStockBatches();
-
-        if (stockBatches.isEmpty()) {
-            System.out.println("No items available in stock.");
-        } else {
-            System.out.printf("%-10s %-15s %-8s %-10s %-12s %-12s\n",
-                    "Code", "Name", "Qty", "Price", "Purchase", "Expiry");
-            System.out.println("...................................................................................");
-
-            for (StockBatch batch : stockBatches) {
-                System.out.printf("%-10s %-15s %-8d %-10.2f %-12s %-12s\n",
-                        batch.itemCode,
-                        batch.itemName,
-                        batch.quantity,
-                        batch.price,
-                        batch.purchaseDate.toString(),
-                        batch.expirationDate != null ? batch.expirationDate.toString() : "N/A");
-            }
-        }
-
-        System.out.println("...................................................................................");
-        System.out.println("Press Enter to continue...");
-        scanner.nextLine();
     }
 
     private void displayLowStockAlerts() {
@@ -185,36 +151,6 @@ public class RestockItems {
 
         System.out.println("Press Enter to continue...");
         scanner.nextLine();
-    }
-
-    private List<StockBatch> getAllStockBatches() {
-        List<StockBatch> batches = new ArrayList<>();
-        String query = "SELECT id, item_code, item_name, quantity, price, purchaseDate, expirationDate " +
-                "FROM stock ORDER BY item_code, purchaseDate ASC";
-
-        try (Connection connection = DatabaseConnection.getInstance().getConnection();
-             PreparedStatement statement = connection.prepareStatement(query);
-             ResultSet resultSet = statement.executeQuery()) {
-
-            while (resultSet.next()) {
-                StockBatch batch = new StockBatch(
-                        resultSet.getString("item_code"),
-                        resultSet.getString("item_name"),
-                        resultSet.getInt("quantity"),
-                        resultSet.getDouble("price"),
-                        resultSet.getDate("purchaseDate").toLocalDate(),
-                        resultSet.getDate("expirationDate") != null ?
-                                resultSet.getDate("expirationDate").toLocalDate() : null,
-                        resultSet.getInt("id")
-                );
-                batches.add(batch);
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error fetching stock batches: " + e.getMessage());
-        }
-
-        return batches;
     }
 
     private List<String> getAvailableItemCodes() {
@@ -503,7 +439,7 @@ public class RestockItems {
                     itemCode = getItemCodeFromStockId(selection.stockId, connection);
                 }
 
-                // Update stock quantity or remove batch
+                // Update stock quantity (set to 0 instead of deleting)
                 updateStockBatch(selection.stockId, selection.quantityToTake, connection);
                 totalQuantityMoved += selection.quantityToTake;
             }
@@ -563,21 +499,17 @@ public class RestockItems {
 
         int newQuantity = currentQuantity - quantityToRemove;
 
-        if (newQuantity <= 0) {
-            // Remove the batch entirely
-            String deleteQuery = "DELETE FROM stock WHERE id = ?";
-            try (PreparedStatement deleteStatement = connection.prepareStatement(deleteQuery)) {
-                deleteStatement.setInt(1, stockId);
-                deleteStatement.executeUpdate();
-            }
-        } else {
-            // Update the quantity
-            String updateQuery = "UPDATE stock SET quantity = ? WHERE id = ?";
-            try (PreparedStatement updateStatement = connection.prepareStatement(updateQuery)) {
-                updateStatement.setInt(1, newQuantity);
-                updateStatement.setInt(2, stockId);
-                updateStatement.executeUpdate();
-            }
+        // Always update the quantity, even if it becomes 0
+        // Don't delete the entry, just set quantity to 0
+        if (newQuantity < 0) {
+            newQuantity = 0;
+        }
+
+        String updateQuery = "UPDATE stock SET quantity = ? WHERE id = ?";
+        try (PreparedStatement updateStatement = connection.prepareStatement(updateQuery)) {
+            updateStatement.setInt(1, newQuantity);
+            updateStatement.setInt(2, stockId);
+            updateStatement.executeUpdate();
         }
     }
 
