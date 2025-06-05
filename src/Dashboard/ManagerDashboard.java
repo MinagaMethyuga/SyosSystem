@@ -3,7 +3,10 @@ package Dashboard;
 import Common.ScannerInstance;
 import Items.AddItem;
 import Items.ItemTemplate;
+import Items.StockDAO;
+import Items.StockView;
 
+import java.util.List;
 import java.util.Scanner;
 
 public class ManagerDashboard implements DashboardAccess {
@@ -42,12 +45,38 @@ public class ManagerDashboard implements DashboardAccess {
                 itemTemplate.addItemToStock();
                 break;
             case 2:
-                System.out.println("Viewing stock functionality is not implemented yet.");
+                StockDAO stockDAO = new StockDAO();
+                List<String[]> stockList = stockDAO.getStockDetails();
+
+                if (stockList.isEmpty()) {
+                    System.out.println("No stock available.");
+                } else {
+                    StockView.displayStock(stockList);
+                }
+
+                System.out.println("...................................................................................");
+
+                // Input validation loop
+                int backChoice;
+                do {
+                    System.out.println("1) To go back to the dashboard.");
+                    while (!scanner.hasNextInt()) { // Ensure valid integer input
+                        System.out.println("Invalid input. Please enter a valid number.");
+                        scanner.next(); // Clear invalid input
+                    }
+                    backChoice = scanner.nextInt();
+                    if (backChoice != 1) {
+                        System.out.println("Invalid choice. Please type 1 to go back to the dashboard.");
+                    }
+                } while (backChoice != 1);
+
+                // Navigate back to the dashboard
+                new ManagerDashboard().viewDashboard();
                 break;
             case 3:
                 System.out.println("Managing reports functionality is not implemented yet.");
                 break;
-            case 4:
+            case 5:
                 System.out.println("Exiting the Manager Dashboard.");
                 return false;
             default:
