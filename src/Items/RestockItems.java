@@ -43,15 +43,8 @@ public class RestockItems {
             System.out.println("...................................................................................");
             System.out.println("Restock Management System");
             System.out.println("...................................................................................");
-
-            // Show low stock alerts if any
-            if (RestockManager.hasLowStockItems()) {
-                System.out.println("⚠️  LOW STOCK ALERT: Some items need restocking!");
-                System.out.println("...................................................................................");
-            }
-
             System.out.println("1. View Available Stock Items");
-            System.out.println("2. Move Items to Shelf (FIFO with Expiry Logic)");
+            System.out.println("2. Move Items to Shelf");
             System.out.println("3. View Current Shelf Status");
             System.out.println("4. View Low Stock Alerts");
             System.out.println("5. Back to Dashboard");
@@ -89,7 +82,7 @@ public class RestockItems {
 
     private void displayAvailableStock() {
         System.out.println("...................................................................................");
-        System.out.println("Available Stock Items (Batch-wise Details)");
+        System.out.println("Available Stock Items");
         System.out.println("...................................................................................");
 
         List<StockBatch> stockBatches = getAllStockBatches();
