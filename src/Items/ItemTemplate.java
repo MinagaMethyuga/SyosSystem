@@ -42,7 +42,6 @@ public abstract class ItemTemplate {
             // Step 8: Continuation method
             Continuation();
         }
-        // If not confirmed, the method ends here without saving or continuing
     }
 
     // Helper class to return both quantity and price

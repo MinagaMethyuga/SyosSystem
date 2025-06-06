@@ -1,4 +1,5 @@
 import Auth.Authenticator;
+import Dashboard.CashierDashboard;
 import Dashboard.ManagerDashboard;
 
 public class Main {
@@ -6,7 +7,7 @@ public class Main {
 //        Authenticator authenticator = new Authenticator();
 //        authenticator.run();
 
-        ManagerDashboard realDashboard = new ManagerDashboard();
+        CashierDashboard realDashboard = new CashierDashboard();
         realDashboard.viewDashboard();
     }
 }
