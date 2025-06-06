@@ -20,6 +20,7 @@ public class CashierDashboard implements DashboardAccess {
         Scanner scanner = ScannerInstance.getScanner();
         System.out.print("Please select an option: ");
         int choice = scanner.nextInt();
+        scanner.nextLine();
 
         switch (choice) {
             case 1:

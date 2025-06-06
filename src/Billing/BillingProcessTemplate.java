@@ -6,8 +6,12 @@ public abstract class BillingProcessTemplate {
     public final void processBilling() {
         // Step 1: Validate inputs and get itemCode
         String itemCode = validateItemCode();
+
+        QueryItemInfo(itemCode);
     }
 
     // Abstract methods to be implemented by subclasses
     protected abstract String validateItemCode(); // itemCode input and validation
+
+    protected abstract void QueryItemInfo(String itemCode);
 }

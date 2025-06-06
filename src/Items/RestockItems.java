@@ -136,21 +136,43 @@ public class RestockItems {
             return;
         }
 
+        // Get selling price from user
+        double sellingPrice = getSellingPrice(itemBatches.getFirst().itemName);
+
         // Determine optimal batch selection using FIFO with expiry logic
         List<BatchSelection> batchSelections = selectBatchesForShelving(itemBatches, quantityToMove);
 
         // Display selection summary
-        displayBatchSelectionSummary(batchSelections, itemBatches.getFirst().itemName);
+        displayBatchSelectionSummary(batchSelections, itemBatches.getFirst().itemName, sellingPrice);
 
         // Confirm the move
         if (confirmMove()) {
-            performBatchedMoveToShelf(batchSelections, itemBatches.getFirst().itemName);
+            performBatchedMoveToShelf(batchSelections, itemBatches.getFirst().itemName, sellingPrice);
         } else {
             System.out.println("Move operation cancelled.");
         }
 
         System.out.println("Press Enter to continue...");
         scanner.nextLine();
+    }
+
+    // New method to get selling price from user
+    private double getSellingPrice(String itemName) {
+        double sellingPrice;
+        while (true) {
+            System.out.print("Enter Selling Price for " + itemName + ": ");
+            try {
+                sellingPrice = Double.parseDouble(scanner.nextLine());
+                if (sellingPrice > 0) {
+                    break;
+                } else {
+                    System.out.println("Selling price must be a positive number.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input. Please enter a valid price.");
+            }
+        }
+        return sellingPrice;
     }
 
     private List<String> getAvailableItemCodes() {
@@ -376,7 +398,8 @@ public class RestockItems {
         return batchWithClosestExpiry;
     }
 
-    private void displayBatchSelectionSummary(List<BatchSelection> selections, String itemName) {
+    // Modified to include selling price in summary
+    private void displayBatchSelectionSummary(List<BatchSelection> selections, String itemName, double sellingPrice) {
         System.out.println("...................................................................................");
         System.out.println("Batch Selection Summary for: " + itemName);
         System.out.println("...................................................................................");
@@ -400,6 +423,8 @@ public class RestockItems {
 
         System.out.println("...................................................................................");
         System.out.println("Total quantity to be moved: " + totalQuantity);
+        System.out.println("Selling price per unit: $" + String.format("%.2f", sellingPrice));
+        System.out.println("Total potential revenue: $" + String.format("%.2f", totalQuantity * sellingPrice));
         System.out.println("...................................................................................");
     }
 
@@ -417,7 +442,8 @@ public class RestockItems {
         }
     }
 
-    private void performBatchedMoveToShelf(List<BatchSelection> selections, String itemName) {
+    // Modified to include selling price
+    private void performBatchedMoveToShelf(List<BatchSelection> selections, String itemName, double sellingPrice) {
         Connection connection = null;
         try {
             connection = DatabaseConnection.getInstance().getConnection();
@@ -438,11 +464,12 @@ public class RestockItems {
                 totalQuantityMoved += selection.quantityToTake;
             }
 
-            // Update shelf quantity
-            updateShelfStock(itemCode, itemName, totalQuantityMoved, connection);
+            // Update shelf quantity with selling price
+            updateShelfStock(itemCode, itemName, totalQuantityMoved, sellingPrice, connection);
 
             connection.commit(); // Commit transaction
             System.out.println("Successfully moved " + totalQuantityMoved + " units of " + itemName + " to shelf using FIFO logic.");
+            System.out.println("Selling price set to: $" + String.format("%.2f", sellingPrice) + " per unit");
 
         } catch (SQLException e) {
             try {
@@ -507,7 +534,8 @@ public class RestockItems {
         }
     }
 
-    private void updateShelfStock(String itemCode, String itemName, int quantityToAdd, Connection connection) throws SQLException {
+    // Modified to include selling price
+    private void updateShelfStock(String itemCode, String itemName, int quantityToAdd, double sellingPrice, Connection connection) throws SQLException {
         // Check if item already exists on shelf
         String checkQuery = "SELECT quantity FROM shelf WHERE item_code = ?";
         try (PreparedStatement checkStatement = connection.prepareStatement(checkQuery)) {
@@ -515,21 +543,23 @@ public class RestockItems {
             ResultSet resultSet = checkStatement.executeQuery();
 
             if (resultSet.next()) {
-                // Item exists, update quantity
+                // Item exists, update quantity (keep existing selling price or update it)
                 int currentShelfQuantity = resultSet.getInt("quantity");
-                String updateQuery = "UPDATE shelf SET quantity = ? WHERE item_code = ?";
+                String updateQuery = "UPDATE shelf SET quantity = ?, selling_price = ? WHERE item_code = ?";
                 try (PreparedStatement updateStatement = connection.prepareStatement(updateQuery)) {
                     updateStatement.setInt(1, currentShelfQuantity + quantityToAdd);
-                    updateStatement.setString(2, itemCode);
+                    updateStatement.setDouble(2, sellingPrice);
+                    updateStatement.setString(3, itemCode);
                     updateStatement.executeUpdate();
                 }
             } else {
-                // Item doesn't exist, insert new record
-                String insertQuery = "INSERT INTO shelf (item_code, item_name, quantity) VALUES (?, ?, ?)";
+                // Item doesn't exist, insert new record with selling price
+                String insertQuery = "INSERT INTO shelf (item_code, item_name, quantity, selling_price) VALUES (?, ?, ?, ?)";
                 try (PreparedStatement insertStatement = connection.prepareStatement(insertQuery)) {
                     insertStatement.setString(1, itemCode);
                     insertStatement.setString(2, itemName);
                     insertStatement.setInt(3, quantityToAdd);
+                    insertStatement.setDouble(4, sellingPrice);
                     insertStatement.executeUpdate();
                 }
             }

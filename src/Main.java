@@ -7,7 +7,10 @@ public class Main {
 //        Authenticator authenticator = new Authenticator();
 //        authenticator.run();
 
-        CashierDashboard realDashboard = new CashierDashboard();
+//        CashierDashboard realDashboard = new CashierDashboard();
+//        realDashboard.viewDashboard();
+
+        ManagerDashboard realDashboard = new ManagerDashboard();
         realDashboard.viewDashboard();
     }
 }
