@@ -14,11 +14,16 @@ import java.util.Scanner;
 public class AddItem extends ItemTemplate {
 
     private Scanner scanner = ScannerInstance.getScanner();
+    private int cachedRestockLevel = -1; // Cache for restock level when item exists
+    private String cachedItemName = null; // Cache for item name when item exists
+    private boolean isExistingItem = false; // Flag to track if item already exists
 
     @Override
     protected String validateInputs() {
         String itemCode;
-        String itemName = null;
+        cachedRestockLevel = -1; // Reset cache
+        cachedItemName = null; // Reset cache
+        isExistingItem = false; // Reset flag
 
         do {
             // Prompt for item code and ensure it's not empty
@@ -28,47 +33,79 @@ public class AddItem extends ItemTemplate {
                 System.out.println("Item code cannot be empty.");
             } else {
                 // Check if item code already exists in the database
-                itemName = fetchItemNameByCode(itemCode);
-                if (itemName != null) {
-                    System.out.println("Item Code exists. Auto-filling item name: " + itemName);
+                ItemDetails itemDetails = fetchItemDetailsByCode(itemCode);
+                if (itemDetails != null) {
+                    System.out.println("Item Code exists. Auto-filling details:");
+                    System.out.println("- Item Name: " + itemDetails.itemName);
+                    System.out.println("- Restock Level: " + itemDetails.restockLevel);
+                    cachedItemName = itemDetails.itemName;
+                    cachedRestockLevel = itemDetails.restockLevel;
+                    isExistingItem = true;
+                    break;
+                } else {
+                    isExistingItem = false;
                     break;
                 }
             }
         } while (itemCode.isEmpty());
 
-        // If item code doesn't exist, prompt for item name
-        if (itemName == null) {
-            do {
-                System.out.print("Enter Item Name: ");
-                itemName = scanner.nextLine();
-                if (itemName.isEmpty()) {
-                    System.out.println("Item name cannot be empty.");
-                }
-            } while (itemName.isEmpty());
-        }
-
         return itemCode;
     }
 
-    // Fetch item name from the database using item code
-    private String fetchItemNameByCode(String itemCode) {
-        String query = "SELECT item_name FROM stock WHERE item_code = ?";
+    // Inner class to hold item details
+    private static class ItemDetails {
+        String itemName;
+        int restockLevel;
+
+        ItemDetails(String itemName, int restockLevel) {
+            this.itemName = itemName;
+            this.restockLevel = restockLevel;
+        }
+    }
+
+    // Fetch item details (name and restock level) from the database using item code
+    private ItemDetails fetchItemDetailsByCode(String itemCode) {
+        String query = "SELECT item_name, restockLevel FROM stock WHERE item_code = ? LIMIT 1";
         try (Connection connection = DatabaseConnection.getInstance().getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(query)) {
             preparedStatement.setString(1, itemCode);
             ResultSet resultSet = preparedStatement.executeQuery();
             if (resultSet.next()) {
-                return resultSet.getString("item_name");
+                return new ItemDetails(
+                        resultSet.getString("item_name"),
+                        resultSet.getInt("restockLevel")
+                );
             }
         } catch (SQLException e) {
-            System.err.println("Error fetching item name by code: " + e.getMessage());
+            System.err.println("Error fetching item details by code: " + e.getMessage());
         }
         return null;
     }
 
+    // Fetch item name from the database using item code (for compatibility)
+    private String fetchItemNameByCode(String itemCode) {
+        ItemDetails details = fetchItemDetailsByCode(itemCode);
+        return details != null ? details.itemName : null;
+    }
+
     @Override
     protected String fetchItemName(String itemCode) {
-        return fetchItemNameByCode(itemCode);
+        // If it's an existing item, return cached name
+        if (isExistingItem && cachedItemName != null) {
+            return cachedItemName;
+        }
+
+        // For new items, prompt for manual input
+        String itemName;
+        do {
+            System.out.print("Enter Item Name: ");
+            itemName = scanner.nextLine().trim();
+            if (itemName.isEmpty()) {
+                System.out.println("Item name cannot be empty.");
+            }
+        } while (itemName.isEmpty());
+
+        return itemName;
     }
 
     @Override
@@ -156,7 +193,13 @@ public class AddItem extends ItemTemplate {
 
     @Override
     protected int addRestockLevel(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate, LocalDate expirationDate) {
-        // Ask for restock level and ensure it's a positive integer
+        // If we have a cached restock level (existing item), use it
+        if (isExistingItem && cachedRestockLevel != -1) {
+            System.out.println("Using existing restock level: " + cachedRestockLevel);
+            return cachedRestockLevel;
+        }
+
+        // For new items, ask for restock level and ensure it's a positive integer
         int restockLevel;
         while (true) {
             System.out.print("Enter Restock Level (positive integer): ");
@@ -249,3 +292,6 @@ public class AddItem extends ItemTemplate {
         }
     }
 }
+
+
+

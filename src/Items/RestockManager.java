@@ -14,45 +14,40 @@ public class RestockManager {
     public static class RestockAlert {
         private String itemCode;
         private String itemName;
-        private int currentShelfQuantity;
+        private int totalStockQuantity;
         private int restockLevel;
         private int recommendedRestockQuantity;
-        private int availableStockQuantity;
 
-        public RestockAlert(String itemCode, String itemName, int currentShelfQuantity,
-                            int restockLevel, int recommendedRestockQuantity, int availableStockQuantity) {
+        public RestockAlert(String itemCode, String itemName, int totalStockQuantity,
+                            int restockLevel, int recommendedRestockQuantity) {
             this.itemCode = itemCode;
             this.itemName = itemName;
-            this.currentShelfQuantity = currentShelfQuantity;
+            this.totalStockQuantity = totalStockQuantity;
             this.restockLevel = restockLevel;
             this.recommendedRestockQuantity = recommendedRestockQuantity;
-            this.availableStockQuantity = availableStockQuantity;
         }
 
         // Getters
         public String getItemCode() { return itemCode; }
         public String getItemName() { return itemName; }
-        public int getCurrentShelfQuantity() { return currentShelfQuantity; }
+        public int getTotalStockQuantity() { return totalStockQuantity; }
         public int getRestockLevel() { return restockLevel; }
         public int getRecommendedRestockQuantity() { return recommendedRestockQuantity; }
-        public int getAvailableStockQuantity() { return availableStockQuantity; }
     }
 
     public static List<RestockAlert> getLowStockAlerts() {
         List<RestockAlert> alerts = new ArrayList<>();
 
-        // Fixed query: properly aggregate stock quantities by item_code and get a single restock level per item
+        // Modified query: Check if total stock quantity is below restock level
         String query = """
             SELECT 
                 s.item_code, 
                 s.item_name, 
                 s.restockLevel,
-                SUM(s.quantity) as total_stock_quantity,
-                COALESCE(sh.quantity, 0) as shelf_quantity
+                SUM(s.quantity) as total_stock_quantity
             FROM stock s
-            LEFT JOIN shelf sh ON s.item_code = sh.item_code
-            GROUP BY s.item_code, s.item_name, s.restockLevel, sh.quantity
-            HAVING COALESCE(sh.quantity, 0) < s.restockLevel
+            GROUP BY s.item_code, s.item_name, s.restockLevel
+            HAVING SUM(s.quantity) < s.restockLevel
             ORDER BY s.item_code
         """;
 
@@ -65,13 +60,12 @@ public class RestockManager {
                 String itemName = resultSet.getString("item_name");
                 int restockLevel = resultSet.getInt("restockLevel");
                 int totalStockQuantity = resultSet.getInt("total_stock_quantity");
-                int shelfQuantity = resultSet.getInt("shelf_quantity");
 
-                // Calculate how much is needed to reach the restock level
-                int recommendedRestock = Math.min(restockLevel - shelfQuantity, totalStockQuantity);
+                // Calculate how much more stock is needed to reach the restock level
+                int recommendedRestock = restockLevel - totalStockQuantity;
 
-                alerts.add(new RestockAlert(itemCode, itemName, shelfQuantity,
-                        restockLevel, recommendedRestock, totalStockQuantity));
+                alerts.add(new RestockAlert(itemCode, itemName, totalStockQuantity,
+                        restockLevel, recommendedRestock));
             }
 
         } catch (SQLException e) {
@@ -90,24 +84,23 @@ public class RestockManager {
         }
 
         System.out.println("...................................................................................");
-        System.out.println("LOW STOCK ALERTS");
+        System.out.println("LOW STOCK ALERTS (Based on Total Stock Quantity)");
         System.out.println("...................................................................................");
-        System.out.printf("%-10s %-20s %-12s %-12s %-12s %-15s\n",
-                "Code", "Name", "Current Shelf", "Restock Level", "Need to Add", "Available Stock");
+        System.out.printf("%-10s %-20s %-15s %-15s %-20s\n",
+                "Code", "Name", "Current Stock", "Restock Level", "Need to Purchase");
         System.out.println("...................................................................................");
 
         for (RestockAlert alert : alerts) {
-            System.out.printf("%-10s %-20s %-12d %-12d %-12d %-15d\n",
+            System.out.printf("%-10s %-20s %-15d %-15d %-20d\n",
                     alert.getItemCode(),
                     alert.getItemName(),
-                    alert.getCurrentShelfQuantity(),
+                    alert.getTotalStockQuantity(),
                     alert.getRestockLevel(),
-                    alert.getRecommendedRestockQuantity(),
-                    alert.getAvailableStockQuantity());
+                    alert.getRecommendedRestockQuantity());
         }
 
         System.out.println("...................................................................................");
-        System.out.println("Note: 'Need to Add' shows how many items to move from stock to reach restock level");
+        System.out.println("Note: 'Need to Purchase' shows how many more items need to be bought to reach restock level");
         System.out.println("...................................................................................");
     }
 

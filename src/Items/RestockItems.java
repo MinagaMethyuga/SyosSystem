@@ -305,12 +305,6 @@ public class RestockItems {
         }
     }
 
-    /**
-     * Implements the business logic: FIFO with expiry date exception
-     * "Stock should be reduced from the oldest batch of items and put on the shelf.
-     * However, when the expiry date of another set is closer than the one in the oldest batch of items,
-     * the newer batch is chosen to stock the SYOS shelves."
-     */
     private List<BatchSelection> selectBatchesForShelving(List<StockBatch> batches, int totalQuantityNeeded) {
         List<BatchSelection> selections = new ArrayList<>();
         int remainingQuantity = totalQuantityNeeded;
