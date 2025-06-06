@@ -136,8 +136,8 @@ public class RestockItems {
             return;
         }
 
-        // Get selling price from user
-        double sellingPrice = getSellingPrice(itemBatches.getFirst().itemName);
+        // Get selling price from user with purchase price display
+        double sellingPrice = getSellingPrice(itemBatches.getFirst().itemName, itemBatches);
 
         // Determine optimal batch selection using FIFO with expiry logic
         List<BatchSelection> batchSelections = selectBatchesForShelving(itemBatches, quantityToMove);
@@ -156,11 +156,22 @@ public class RestockItems {
         scanner.nextLine();
     }
 
-    // New method to get selling price from user
-    private double getSellingPrice(String itemName) {
+    // Modified method to show purchase price when asking for selling price
+    private double getSellingPrice(String itemName, List<StockBatch> itemBatches) {
         double sellingPrice;
+
+        // Calculate average purchase price for reference
+        double totalPurchaseValue = 0;
+        int totalQuantity = 0;
+        for (StockBatch batch : itemBatches) {
+            totalPurchaseValue += batch.price * batch.quantity;
+            totalQuantity += batch.quantity;
+        }
+        double averagePurchasePrice = totalQuantity > 0 ? totalPurchaseValue / totalQuantity : 0;
+
         while (true) {
-            System.out.print("Enter Selling Price for " + itemName + ": ");
+            System.out.printf("Enter Selling Price for %s (Avg. Purchase Price: LKR %.2f): ",
+                    itemName, averagePurchasePrice);
             try {
                 sellingPrice = Double.parseDouble(scanner.nextLine());
                 if (sellingPrice > 0) {
@@ -398,7 +409,7 @@ public class RestockItems {
         return batchWithClosestExpiry;
     }
 
-    // Modified to include selling price in summary
+    // Modified to include selling price in summary with LKR currency
     private void displayBatchSelectionSummary(List<BatchSelection> selections, String itemName, double sellingPrice) {
         System.out.println("...................................................................................");
         System.out.println("Batch Selection Summary for: " + itemName);
@@ -423,8 +434,8 @@ public class RestockItems {
 
         System.out.println("...................................................................................");
         System.out.println("Total quantity to be moved: " + totalQuantity);
-        System.out.println("Selling price per unit: $" + String.format("%.2f", sellingPrice));
-        System.out.println("Total potential revenue: $" + String.format("%.2f", totalQuantity * sellingPrice));
+        System.out.println("Selling price per unit: LKR " + String.format("%.2f", sellingPrice));
+        System.out.println("Total potential revenue: LKR " + String.format("%.2f", totalQuantity * sellingPrice));
         System.out.println("...................................................................................");
     }
 
@@ -442,7 +453,7 @@ public class RestockItems {
         }
     }
 
-    // Modified to include selling price
+    // Modified to include selling price with LKR currency
     private void performBatchedMoveToShelf(List<BatchSelection> selections, String itemName, double sellingPrice) {
         Connection connection = null;
         try {
@@ -469,7 +480,7 @@ public class RestockItems {
 
             connection.commit(); // Commit transaction
             System.out.println("Successfully moved " + totalQuantityMoved + " units of " + itemName + " to shelf using FIFO logic.");
-            System.out.println("Selling price set to: $" + String.format("%.2f", sellingPrice) + " per unit");
+            System.out.println("Selling price set to: LKR " + String.format("%.2f", sellingPrice) + " per unit");
 
         } catch (SQLException e) {
             try {
