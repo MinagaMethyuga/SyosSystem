@@ -31,14 +31,18 @@ public abstract class ItemTemplate {
         // Step 5: Add the restocking level
         int restockLevel = addRestockLevel(itemCode, itemName, quantity, price, purchaseDate, expirationDate);
 
-        // Step 6: Validate information and confirm
-        ValidateInforAndConfirm(itemCode, itemName, quantity, price, purchaseDate, expirationDate, restockLevel);
+        // Step 6: Validate information and confirm - THIS NOW RETURNS A BOOLEAN
+        boolean confirmed = ValidateInforAndConfirm(itemCode, itemName, quantity, price, purchaseDate, expirationDate, restockLevel);
 
-        // Step 7: Save the item to the database
-        saveItemToDatabase(itemCode, itemName, quantity, price, purchaseDate, expirationDate, restockLevel);
+        // Only proceed if user confirmed
+        if (confirmed) {
+            // Step 7: Save the item to the database
+            saveItemToDatabase(itemCode, itemName, quantity, price, purchaseDate, expirationDate, restockLevel);
 
-        // Step 8: Continuation method
-        Continuation();
+            // Step 8: Continuation method
+            Continuation();
+        }
+        // If not confirmed, the method ends here without saving or continuing
     }
 
     // Helper class to return both quantity and price
@@ -65,7 +69,8 @@ public abstract class ItemTemplate {
 
     protected abstract int addRestockLevel(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate, LocalDate expirationDate); // Restock Level input
 
-    protected abstract void ValidateInforAndConfirm(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate, LocalDate expirationDate, int restockLevel);
+    // CHANGED: Now returns boolean to indicate if user confirmed
+    protected abstract boolean ValidateInforAndConfirm(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate, LocalDate expirationDate, int restockLevel);
 
     protected abstract void saveItemToDatabase(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate, LocalDate expirationDate, int restockLevel);
 

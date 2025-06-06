@@ -218,7 +218,7 @@ public class AddItem extends ItemTemplate {
     }
 
     @Override
-    protected void ValidateInforAndConfirm(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate, LocalDate expirationDate, int restockLevel) {
+    protected boolean ValidateInforAndConfirm(String itemCode, String itemName, int quantity, double price, LocalDate purchaseDate, LocalDate expirationDate, int restockLevel) {
         // Display item details for confirmation
         System.out.printf(""" 
                 Item Details:
@@ -237,11 +237,11 @@ public class AddItem extends ItemTemplate {
             System.out.print("Confirm addition to stock? (Y/N): ");
             String input = scanner.nextLine().toUpperCase();
             if (input.equals("Y")) {
-                break;
+                return true; // User confirmed, proceed with saving
             } else if (input.equals("N")) {
                 System.out.println("Item addition canceled.");
                 new ManagerDashboard().viewDashboard();
-                return;
+                return false; // User canceled, don't save
             } else {
                 System.out.println("Invalid input. Please enter 'Y' or 'N'.");
             }
@@ -292,6 +292,3 @@ public class AddItem extends ItemTemplate {
         }
     }
 }
-
-
-
