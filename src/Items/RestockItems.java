@@ -38,6 +38,19 @@ public class RestockItems {
         }
     }
 
+    // Inner class to hold pricing information
+    private static class PricingInfo {
+        double sellingPrice;
+        Double discountPrice; // Nullable - null means no discount
+        boolean hasDiscount;
+
+        public PricingInfo(double sellingPrice, Double discountPrice) {
+            this.sellingPrice = sellingPrice;
+            this.discountPrice = discountPrice;
+            this.hasDiscount = discountPrice != null;
+        }
+    }
+
     public void restockItemsMenu() {
         while (true) {
             System.out.println("...................................................................................");
@@ -136,18 +149,18 @@ public class RestockItems {
             return;
         }
 
-        // Get selling price from user with purchase price display
-        double sellingPrice = getSellingPrice(itemBatches.getFirst().itemName, itemBatches);
+        // Get pricing information (selling price and optional discount price)
+        PricingInfo pricingInfo = getPricingInformation(itemBatches.getFirst().itemName, itemBatches);
 
         // Determine optimal batch selection using FIFO with expiry logic
         List<BatchSelection> batchSelections = selectBatchesForShelving(itemBatches, quantityToMove);
 
-        // Display selection summary
-        displayBatchSelectionSummary(batchSelections, itemBatches.getFirst().itemName, sellingPrice);
+        // Display selection summary with pricing details
+        displayBatchSelectionSummary(batchSelections, itemBatches.getFirst().itemName, pricingInfo);
 
         // Confirm the move
         if (confirmMove()) {
-            performBatchedMoveToShelf(batchSelections, itemBatches.getFirst().itemName, sellingPrice);
+            performBatchedMoveToShelf(batchSelections, itemBatches.getFirst().itemName, pricingInfo);
         } else {
             System.out.println("Move operation cancelled.");
         }
@@ -156,10 +169,8 @@ public class RestockItems {
         scanner.nextLine();
     }
 
-    // Modified method to show purchase price when asking for selling price
-    private double getSellingPrice(String itemName, List<StockBatch> itemBatches) {
-        double sellingPrice;
-
+    // New method to get both selling price and optional discount price
+    private PricingInfo getPricingInformation(String itemName, List<StockBatch> itemBatches) {
         // Calculate average purchase price for reference
         double totalPurchaseValue = 0;
         int totalQuantity = 0;
@@ -169,6 +180,8 @@ public class RestockItems {
         }
         double averagePurchasePrice = totalQuantity > 0 ? totalPurchaseValue / totalQuantity : 0;
 
+        // Get selling price
+        double sellingPrice;
         while (true) {
             System.out.printf("Enter Selling Price for %s (Avg. Purchase Price: LKR %.2f): ",
                     itemName, averagePurchasePrice);
@@ -183,7 +196,40 @@ public class RestockItems {
                 System.out.println("Invalid input. Please enter a valid price.");
             }
         }
-        return sellingPrice;
+
+        // Ask if user wants to add a discount price
+        Double discountPrice = null;
+        while (true) {
+            System.out.print("Do you want to add a discount price? (Y/N): ");
+            String addDiscount = scanner.nextLine().toUpperCase().trim();
+
+            if (addDiscount.equals("Y")) {
+                // Get discount price
+                while (true) {
+                    System.out.printf("Enter Discount Price for %s (must be less than LKR %.2f): ",
+                            itemName, sellingPrice);
+                    try {
+                        discountPrice = Double.parseDouble(scanner.nextLine());
+                        if (discountPrice > 0 && discountPrice < sellingPrice) {
+                            break;
+                        } else if (discountPrice >= sellingPrice) {
+                            System.out.println("Discount price must be less than the selling price.");
+                        } else {
+                            System.out.println("Discount price must be a positive number.");
+                        }
+                    } catch (NumberFormatException e) {
+                        System.out.println("Invalid input. Please enter a valid price.");
+                    }
+                }
+                break;
+            } else if (addDiscount.equals("N")) {
+                break;
+            } else {
+                System.out.println("Invalid input. Please enter 'Y' or 'N'.");
+            }
+        }
+
+        return new PricingInfo(sellingPrice, discountPrice);
     }
 
     private List<String> getAvailableItemCodes() {
@@ -409,8 +455,8 @@ public class RestockItems {
         return batchWithClosestExpiry;
     }
 
-    // Modified to include selling price in summary with LKR currency
-    private void displayBatchSelectionSummary(List<BatchSelection> selections, String itemName, double sellingPrice) {
+    // Enhanced method to include discount pricing in summary
+    private void displayBatchSelectionSummary(List<BatchSelection> selections, String itemName, PricingInfo pricingInfo) {
         System.out.println("...................................................................................");
         System.out.println("Batch Selection Summary for: " + itemName);
         System.out.println("...................................................................................");
@@ -433,9 +479,23 @@ public class RestockItems {
         }
 
         System.out.println("...................................................................................");
+        System.out.println("PRICING SUMMARY:");
         System.out.println("Total quantity to be moved: " + totalQuantity);
-        System.out.println("Selling price per unit: LKR " + String.format("%.2f", sellingPrice));
-        System.out.println("Total potential revenue: LKR " + String.format("%.2f", totalQuantity * sellingPrice));
+        System.out.println("Selling price per unit: LKR " + String.format("%.2f", pricingInfo.sellingPrice));
+
+        if (pricingInfo.hasDiscount) {
+            System.out.println("Discount price per unit: LKR " + String.format("%.2f", pricingInfo.discountPrice));
+            System.out.println("Discount per unit: LKR " + String.format("%.2f",
+                    pricingInfo.sellingPrice - pricingInfo.discountPrice));
+            System.out.println("Total potential revenue (at selling price): LKR " +
+                    String.format("%.2f", totalQuantity * pricingInfo.sellingPrice));
+            System.out.println("Total potential revenue (at discount price): LKR " +
+                    String.format("%.2f", totalQuantity * pricingInfo.discountPrice));
+        } else {
+            System.out.println("No discount applied");
+            System.out.println("Total potential revenue: LKR " +
+                    String.format("%.2f", totalQuantity * pricingInfo.sellingPrice));
+        }
         System.out.println("...................................................................................");
     }
 
@@ -453,8 +513,8 @@ public class RestockItems {
         }
     }
 
-    // Modified to include selling price with LKR currency
-    private void performBatchedMoveToShelf(List<BatchSelection> selections, String itemName, double sellingPrice) {
+    // Enhanced method to include discount pricing in database operations
+    private void performBatchedMoveToShelf(List<BatchSelection> selections, String itemName, PricingInfo pricingInfo) {
         Connection connection = null;
         try {
             connection = DatabaseConnection.getInstance().getConnection();
@@ -475,12 +535,15 @@ public class RestockItems {
                 totalQuantityMoved += selection.quantityToTake;
             }
 
-            // Update shelf quantity with selling price
-            updateShelfStock(itemCode, itemName, totalQuantityMoved, sellingPrice, connection);
+            // Update shelf quantity with pricing information
+            updateShelfStock(itemCode, itemName, totalQuantityMoved, pricingInfo, connection);
 
             connection.commit(); // Commit transaction
             System.out.println("Successfully moved " + totalQuantityMoved + " units of " + itemName + " to shelf using FIFO logic.");
-            System.out.println("Selling price set to: LKR " + String.format("%.2f", sellingPrice) + " per unit");
+            System.out.println("Selling price set to: LKR " + String.format("%.2f", pricingInfo.sellingPrice) + " per unit");
+            if (pricingInfo.hasDiscount) {
+                System.out.println("Discount price set to: LKR " + String.format("%.2f", pricingInfo.discountPrice) + " per unit");
+            }
 
         } catch (SQLException e) {
             try {
@@ -545,8 +608,8 @@ public class RestockItems {
         }
     }
 
-    // Modified to include selling price
-    private void updateShelfStock(String itemCode, String itemName, int quantityToAdd, double sellingPrice, Connection connection) throws SQLException {
+    // Enhanced method to include discount pricing in shelf updates
+    private void updateShelfStock(String itemCode, String itemName, int quantityToAdd, PricingInfo pricingInfo, Connection connection) throws SQLException {
         // Check if item already exists on shelf
         String checkQuery = "SELECT quantity FROM shelf WHERE item_code = ?";
         try (PreparedStatement checkStatement = connection.prepareStatement(checkQuery)) {
@@ -554,23 +617,44 @@ public class RestockItems {
             ResultSet resultSet = checkStatement.executeQuery();
 
             if (resultSet.next()) {
-                // Item exists, update quantity (keep existing selling price or update it)
+                // Item exists, update quantity and pricing
                 int currentShelfQuantity = resultSet.getInt("quantity");
-                String updateQuery = "UPDATE shelf SET quantity = ?, selling_price = ? WHERE item_code = ?";
+                String updateQuery;
+
+                if (pricingInfo.hasDiscount) {
+                    updateQuery = "UPDATE shelf SET quantity = ?, selling_price = ?, discount_price = ? WHERE item_code = ?";
+                } else {
+                    updateQuery = "UPDATE shelf SET quantity = ?, selling_price = ?, discount_price = NULL WHERE item_code = ?";
+                }
+
                 try (PreparedStatement updateStatement = connection.prepareStatement(updateQuery)) {
                     updateStatement.setInt(1, currentShelfQuantity + quantityToAdd);
-                    updateStatement.setDouble(2, sellingPrice);
-                    updateStatement.setString(3, itemCode);
+                    updateStatement.setDouble(2, pricingInfo.sellingPrice);
+                    if (pricingInfo.hasDiscount) {
+                        updateStatement.setDouble(3, pricingInfo.discountPrice);
+                        updateStatement.setString(4, itemCode);
+                    } else {
+                        updateStatement.setString(3, itemCode);
+                    }
                     updateStatement.executeUpdate();
                 }
             } else {
-                // Item doesn't exist, insert new record with selling price
-                String insertQuery = "INSERT INTO shelf (item_code, item_name, quantity, selling_price) VALUES (?, ?, ?, ?)";
+                // Item doesn't exist, insert new record with pricing
+                String insertQuery;
+                if (pricingInfo.hasDiscount) {
+                    insertQuery = "INSERT INTO shelf (item_code, item_name, quantity, selling_price, discount_price) VALUES (?, ?, ?, ?, ?)";
+                } else {
+                    insertQuery = "INSERT INTO shelf (item_code, item_name, quantity, selling_price, discount_price) VALUES (?, ?, ?, ?, NULL)";
+                }
+
                 try (PreparedStatement insertStatement = connection.prepareStatement(insertQuery)) {
                     insertStatement.setString(1, itemCode);
                     insertStatement.setString(2, itemName);
                     insertStatement.setInt(3, quantityToAdd);
-                    insertStatement.setDouble(4, sellingPrice);
+                    insertStatement.setDouble(4, pricingInfo.sellingPrice);
+                    if (pricingInfo.hasDiscount) {
+                        insertStatement.setDouble(5, pricingInfo.discountPrice);
+                    }
                     insertStatement.executeUpdate();
                 }
             }

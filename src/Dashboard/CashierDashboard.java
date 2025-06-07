@@ -24,8 +24,9 @@ public class CashierDashboard implements DashboardAccess {
 
         switch (choice) {
             case 1:
-                BillingProcessTemplate billingProcess = new MakeBill();
-                billingProcess.processBilling();
+                // Use the new continuous billing method instead of single billing
+                MakeBill billingProcess = new MakeBill();
+                billingProcess.startContinuousBilling();
                 break;
             case 2:
                 System.out.println("2. View Sales Report");
@@ -35,7 +36,7 @@ public class CashierDashboard implements DashboardAccess {
                 return false;
             default:
                 System.out.println("Invalid choice. Please try again.");
-                return true; // Return true to allow the user to try again
+                return true;
         }
         return true;
     }

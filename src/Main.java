@@ -6,11 +6,11 @@ public class Main {
     public static void main(String[] args) {
 //        Authenticator authenticator = new Authenticator();
 //        authenticator.run();
-
-        CashierDashboard realDashboard = new CashierDashboard();
-        realDashboard.viewDashboard();
-
-//        ManagerDashboard realDashboard = new ManagerDashboard();
+//
+//        CashierDashboard realDashboard = new CashierDashboard();
 //        realDashboard.viewDashboard();
+
+        ManagerDashboard realDashboard = new ManagerDashboard();
+        realDashboard.viewDashboard();
     }
 }

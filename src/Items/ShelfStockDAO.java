@@ -13,14 +13,14 @@ public class ShelfStockDAO {
     // Method name should be consistent - using getShelfStocks to match usage in ManagerDashboard
     public static List<String[]> getShelfStocks() {
         List<String[]> shelfStocks = new ArrayList<>();
-        String query = "SELECT item_code, item_name, quantity, selling_price FROM shelf";
+        String query = "SELECT item_code, item_name, quantity, selling_price, discount_price FROM shelf";
 
         try (Connection connection = DatabaseConnection.getInstance().getConnection();
              PreparedStatement statement = connection.prepareStatement(query);
              ResultSet resultSet = statement.executeQuery()) {
 
             while (resultSet.next()) {
-                String[] stock = new String[4]; // Updated to 4 elements to include selling price
+                String[] stock = new String[5]; // Updated to 5 elements to include discount price
                 stock[0] = resultSet.getString("item_code");
                 stock[1] = resultSet.getString("item_name");
                 stock[2] = String.valueOf(resultSet.getInt("quantity"));
@@ -31,6 +31,14 @@ public class ShelfStockDAO {
                     stock[3] = "N/A";
                 } else {
                     stock[3] = String.format("%.2f", sellingPrice);
+                }
+
+                // Handle discount_price - it might be null
+                double discountPrice = resultSet.getDouble("discount_price");
+                if (resultSet.wasNull()) {
+                    stock[4] = "N/A";
+                } else {
+                    stock[4] = String.format("%.2f", discountPrice);
                 }
 
                 shelfStocks.add(stock);
