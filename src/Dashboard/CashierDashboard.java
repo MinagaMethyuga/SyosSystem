@@ -1,8 +1,10 @@
 package Dashboard;
 
+import Auth.Login;
 import Billing.BillingProcessTemplate;
 import Billing.MakeBill;
 import Common.ScannerInstance;
+import Reports.SalesReport;
 
 import java.util.Scanner;
 
@@ -29,10 +31,14 @@ public class CashierDashboard implements DashboardAccess {
                 billingProcess.startContinuousBilling();
                 break;
             case 2:
-                System.out.println("2. View Sales Report");
+                // Display sales report
+                SalesReport salesReport = new SalesReport();
+                salesReport.displaySalesReportMenu();
                 break;
             case 3:
                 System.out.println("Exiting the Cashier Dashboard.");
+                Login login = new Login();
+                login.login();
                 return false;
             default:
                 System.out.println("Invalid choice. Please try again.");

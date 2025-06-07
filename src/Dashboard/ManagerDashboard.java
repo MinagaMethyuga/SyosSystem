@@ -1,7 +1,9 @@
 package Dashboard;
 
+import Auth.Login;
 import Common.ScannerInstance;
 import Items.*;
+import Reports.ReportManager;
 
 import java.util.Scanner;
 
@@ -50,10 +52,13 @@ public class ManagerDashboard implements DashboardAccess {
                 restockItems.restockItemsMenu();
                 break;
             case 4:
-                System.out.println("Managing reports functionality is not implemented yet.");
+                ReportManager reportManager = new ReportManager();
+                reportManager.displayReportMenu();
                 break;
             case 5:
                 System.out.println("Exiting the Manager Dashboard.");
+                Login login = new Login();
+                login.login();
                 return false;
             default:
                 System.out.println("Invalid choice. Please try again.");
