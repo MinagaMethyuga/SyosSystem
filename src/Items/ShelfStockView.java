@@ -10,7 +10,7 @@ public class ShelfStockView {
         System.out.println("-----------------------------------------------------------------------------");
         for (String[] shelf : shelfStocks) {
             System.out.printf("%-10s %-15s %-10s LKR %-13s %-15s\n",
-                    shelf[0], shelf[1], shelf[2], shelf[3] != null ? shelf[3] : "N/A");
+                    shelf[0], shelf[1], shelf[2], shelf[3] != null ? shelf[3] : "N/A" , shelf[4] != null ? shelf[4] : "N/A");
         }
     }
 }
